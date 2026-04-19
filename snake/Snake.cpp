@@ -49,26 +49,19 @@ void Snake::grow() {
 }
 
 void Snake::changeDirection(Direction newDir) {
-    // 防止直接反向移动
-    bool isOpposite = false;
-    switch (currentDirection) {
-        case Direction::UP:
-            isOpposite = (newDir == Direction::DOWN);
-            break;
-        case Direction::DOWN:
-            isOpposite = (newDir == Direction::UP);
-            break;
-        case Direction::LEFT:
-            isOpposite = (newDir == Direction::RIGHT);
-            break;
-        case Direction::RIGHT:
-            isOpposite = (newDir == Direction::LEFT);
-            break;
-    }
-    
-    if (!isOpposite) {
+    // 防止直接反向移动（使用isOpposite函数）
+    if (!isOpposite(newDir, currentDirection)) {
         nextDirection = newDir;
     }
+}
+
+void Snake::updateDirection(Direction newDir) {
+    // 最新合法输入覆盖策略
+    // 同一帧内允许多次调用，只保留最后一个合法方向
+    if (!isOpposite(newDir, currentDirection)) {
+        nextDirection = newDir;  // 覆盖之前的输入
+    }
+    // 如果是反向输入，直接忽略（防止180°自撞）
 }
 
 bool Snake::checkCollision(int wallWidth, int wallHeight) const {

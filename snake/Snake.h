@@ -20,6 +20,14 @@ enum class Direction {
     RIGHT
 };
 
+// 方向约束工具函数：判断两个方向是否相反（180°）
+inline bool isOpposite(Direction dir1, Direction dir2) {
+    return (dir1 == Direction::UP && dir2 == Direction::DOWN) ||
+           (dir1 == Direction::DOWN && dir2 == Direction::UP) ||
+           (dir1 == Direction::LEFT && dir2 == Direction::RIGHT) ||
+           (dir1 == Direction::RIGHT && dir2 == Direction::LEFT);
+}
+
 class Snake {
 public:
     Snake(int startX, int startY);
@@ -30,8 +38,11 @@ public:
     // 增长蛇身
     void grow();
     
-    // 改变方向
+    // 改变方向（带约束校验）
     void changeDirection(Direction newDir);
+    
+    // 更新方向（最新合法输入覆盖策略）
+    void updateDirection(Direction newDir);
     
     // 检测碰撞（墙体和自身）
     bool checkCollision(int wallWidth, int wallHeight) const;

@@ -8,10 +8,11 @@
 #include "SaveSystem.h"
 
 enum class GameStatus {
+    MENU,
     RUNNING,
     PAUSED,
     GAME_OVER,
-    WON
+    EXIT
 };
 
 enum class Difficulty {
@@ -32,14 +33,14 @@ public:
     // 运行游戏主循环
     void run();
     
+    // 处理输入（解耦版）
+    void processInput();
+    
     // 更新游戏状态
     void update();
     
     // 渲染游戏画面
     void render();
-    
-    // 处理输入
-    void handleInput();
     
     // 保存游戏
     void saveGame();

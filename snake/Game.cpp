@@ -39,35 +39,34 @@ void Game::reset() {
 }
 
 void Game::run() {
-    auto lastUpdate = std::chrono::steady_clock::now();
+    // 【标准Game Loop结构】
+    // processInput -> update -> render
     
-    while (true) {
+    auto lastUpdateTime = std::chrono::steady_clock::now();
+    
+    while (status != GameStatus::EXIT) {
         auto currentTime = std::chrono::steady_clock::now();
         
-        // 处理输入（每帧都处理）
-        handleInput();
+        // ========== 1. 处理输入（高频，每帧执行） ==========
+        processInput();
         
-        // 如果游戏结束，退出循环
-        if (status == GameStatus::GAME_OVER) {
-            render();
-            std::this_thread::sleep_for(std::chrono::milliseconds(500));
-            break;
-        }
+        // ========== 2. 状态更新（固定时间步长） ==========
+        int tickInterval = getGameSpeed();  // 根据难度获取更新间隔
+        auto elapsed = std::chrono::duration_cast<std::chrono::milliseconds>(
+            currentTime - lastUpdateTime).count();
         
-        // 更新游戏状态（根据难度动态调整速度）
-        int frameDelay = getGameSpeed();
-        if (std::chrono::duration_cast<std::chrono::milliseconds>(currentTime - lastUpdate).count() >= frameDelay) {
+        if (elapsed >= tickInterval) {
             if (status == GameStatus::RUNNING) {
-                update();
+                update();  // 游戏逻辑更新
             }
-            lastUpdate = currentTime;
+            lastUpdateTime = currentTime;
         }
         
-        // 渲染画面
+        // ========== 3. 渲染输出（每帧执行） ==========
         render();
         
-        // 短暂延迟以减少 CPU 占用
-        std::this_thread::sleep_for(std::chrono::milliseconds(50));
+        // 短暂延迟以降低CPU占用
+        std::this_thread::sleep_for(std::chrono::milliseconds(10));
     }
 }
 
@@ -133,55 +132,56 @@ void Game::render() {
     renderer.swapBuffer();
 }
 
-void Game::handleInput() {
-    KeyAction action = input.getKeyInput();
+void Game::processInput() {
+    // 【输入-更新解耦】
+    // 输入可以高频发生，但状态更新按固定节奏
+    
+    // 读取功能键
+    KeyAction action = input.getActionInput();
     
     switch (action) {
-        case KeyAction::UP:
-            if (status == GameStatus::RUNNING) {
-                snake->changeDirection(Direction::UP);
-            }
-            break;
-        case KeyAction::DOWN:
-            if (status == GameStatus::RUNNING) {
-                snake->changeDirection(Direction::DOWN);
-            }
-            break;
-        case KeyAction::LEFT:
-            if (status == GameStatus::RUNNING) {
-                snake->changeDirection(Direction::LEFT);
-            }
-            break;
-        case KeyAction::RIGHT:
-            if (status == GameStatus::RUNNING) {
-                snake->changeDirection(Direction::RIGHT);
-            }
-            break;
         case KeyAction::PAUSE:
+            // 状态机转换：RUNNING <-> PAUSED
             if (status == GameStatus::RUNNING) {
                 status = GameStatus::PAUSED;
             } else if (status == GameStatus::PAUSED) {
                 status = GameStatus::RUNNING;
             }
             break;
+            
         case KeyAction::QUIT:
-            status = GameStatus::GAME_OVER;
+            status = GameStatus::EXIT;
             break;
+            
         case KeyAction::SAVE:
             if (status == GameStatus::RUNNING || status == GameStatus::PAUSED) {
                 saveGame();
             }
             break;
+            
         case KeyAction::LOAD:
             loadGame();
             break;
+            
         case KeyAction::DIFFICULTY:
             if (status == GameStatus::RUNNING || status == GameStatus::PAUSED) {
                 switchDifficulty();
             }
             break;
+            
         default:
             break;
+    }
+    
+    // 【核心】读取方向输入（最新合法输入覆盖策略）
+    if (status == GameStatus::RUNNING) {
+        Direction currentDir = snake->getDirection();
+        Direction newDir = input.processInput(currentDir);
+        
+        // 如果有新的合法方向，更新蛇的方向
+        if (newDir != currentDir) {
+            snake->updateDirection(newDir);
+        }
     }
 }
 
